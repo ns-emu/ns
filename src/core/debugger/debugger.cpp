@@ -6,7 +6,6 @@
 #include <thread>
 
 #include <boost/asio.hpp>
-#include <boost/process/async_pipe.hpp>
 
 #include "common/logging/log.h"
 #include "common/polyfill_thread.h"
@@ -92,7 +91,7 @@ public:
         state->info = signal_info;
 
         // Write a single byte into the pipe to wake up the debug interface.
-        boost::asio::write(state->signal_pipe, boost::asio::buffer(&stopped, sizeof(stopped)));
+        boost::asio::write(state->signal_pipe_write, boost::asio::buffer(&stopped, sizeof(stopped)));
 
         return true;
     }
@@ -159,15 +158,19 @@ private:
         // Set the new state. This will tear down any existing state.
         state = ConnectionState{
             .client_socket{std::move(peer)},
-            .signal_pipe{io_context},
+            .signal_pipe_read{io_context},
+            .signal_pipe_write{io_context},
             .info{},
             .active_thread{},
             .client_data{},
             .pipe_data{},
         };
 
+        // Connect the pipes
+        boost::asio::connect_pipe(state->signal_pipe_read, state->signal_pipe_write);
+
         // Set up the client signals for new data.
-        AsyncReceiveInto(state->signal_pipe, state->pipe_data, [&](auto d) { PipeData(d); });
+        AsyncReceiveInto(state->signal_pipe_read, state->pipe_data, [&](auto d) { PipeData(d); });
         AsyncReceiveInto(state->client_socket, state->client_data, [&](auto d) { ClientData(d); });
 
         // Set the active thread.
@@ -212,7 +215,8 @@ private:
             debug_process.Reset(nullptr);
 
             // Wait for emulation to shut down gracefully now.
-            state->signal_pipe.close();
+            state->signal_pipe_read.close();
+            state->signal_pipe_write.close();
             state->client_socket.shutdown(boost::asio::socket_base::shutdown_both);
             LOG_INFO(Debug_GDBStub, "Shut down server");
 
@@ -326,7 +330,8 @@ private:
 
     struct ConnectionState {
         boost::asio::ip::tcp::socket client_socket;
-        boost::process::async_pipe signal_pipe;
+        boost::asio::readable_pipe signal_pipe_read;
+        boost::asio::writable_pipe signal_pipe_write;
 
         SignalInfo info;
         Kernel::KScopedAutoObject<Kernel::KThread> active_thread;
