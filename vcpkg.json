@@ -27,7 +27,7 @@
     "nlohmann-json",
     "zlib",
     "zstd",
-    "qtbase"
+    "qt"
   ],
   "features": {
     "yuzu-tests": {
