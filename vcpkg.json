@@ -26,8 +26,7 @@
     "lz4",
     "nlohmann-json",
     "zlib",
-    "zstd",
-    "qt"
+    "zstd"
   ],
   "features": {
     "yuzu-tests": {
