@@ -26,7 +26,18 @@
     "lz4",
     "nlohmann-json",
     "zlib",
-    "zstd"
+    "zstd",
+    "enet",
+    "cubeb",
+    "libusb",
+    "opus",
+    "cpp-httplib",
+    "ffmpeg",
+    "cpp-jwt",
+    "simpleini",
+    "Vulkan-Utility-Libraries",
+    "VulkanMemoryAllocator",
+    "Vulkan-Headers"
   ],
   "features": {
     "yuzu-tests": {
