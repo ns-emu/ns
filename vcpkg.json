@@ -37,7 +37,11 @@
     "simpleini",
     "Vulkan-Utility-Libraries",
     "VulkanMemoryAllocator",
-    "Vulkan-Headers"
+    "Vulkan-Headers",
+    {
+      "name": "pkgconf",
+      "host": true
+    }
   ],
   "features": {
     "yuzu-tests": {
@@ -62,6 +66,14 @@
           "name": "oboe",
           "platform": "android"
         }
+      ]
+    },
+    "qt6": {
+      "description": "Use Qt6 from vcpkg for the Qt frontend",
+      "dependencies": [
+        "qtbase",
+        "qttools",
+        "qtmultimedia"
       ]
     }
   },
