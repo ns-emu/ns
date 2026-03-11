@@ -24,7 +24,7 @@ cmake_dependent_option(ENABLE_LIBUSB "Enable the use of LibUSB" ON "NOT ANDROID"
 option(ENABLE_OPENGL "Enable OpenGL" ON)
 mark_as_advanced(FORCE ENABLE_OPENGL)
 option(ENABLE_QT "Enable the Qt frontend" ON)
-option(ENABLE_QT6 "Allow usage of Qt6 to be attempted" OFF)
+cmake_dependent_option(ENABLE_QT6 "Allow usage of Qt6 to be attempted" ON "ENABLE_QT" OFF)
 set(QT6_LOCATION "" CACHE PATH "Additional Location to search for Qt6 libraries like C:/Qt/6.3.1/msvc2019_64/")
 
 option(ENABLE_QT_TRANSLATION "Enable translations for the Qt frontend" OFF)
@@ -105,6 +105,8 @@ if (ANDROID)
 endif()
 
 if (YUZU_USE_BUNDLED_VCPKG)
+    include(UpdateVcpkg)
+
     if (ANDROID)
         set(ENV{ANDROID_NDK_HOME} "${ANDROID_NDK}")
         list(APPEND VCPKG_MANIFEST_FEATURES "android")
@@ -146,6 +148,9 @@ if (YUZU_USE_BUNDLED_VCPKG)
     endif()
     if (ANDROID)
         list(APPEND VCPKG_MANIFEST_FEATURES "android")
+    endif()
+    if (ENABLE_QT6)
+        list(APPEND VCPKG_MANIFEST_FEATURES "qt6")
     endif()
 
     include(${CMAKE_SOURCE_DIR}/externals/vcpkg/scripts/buildsystems/vcpkg.cmake)
