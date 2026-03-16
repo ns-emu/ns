@@ -4,5 +4,6 @@
 # SPDX-License-Identifier: MIT
 
 git submodule sync
+git submodule update --remote
 git submodule foreach --recursive git reset --hard
 git submodule update --init --recursive
