@@ -106,7 +106,11 @@ public:
     }
 
     bool IsInterlaced() const {
+#if defined(FF_API_INTERLACED_FRAME) || LIBAVUTIL_VERSION_MAJOR >= 59
+        return (m_frame->flags & AV_FRAME_FLAG_INTERLACED) != 0;
+#else
         return m_frame->interlaced_frame != 0;
+#endif
     }
 
     bool IsHardwareDecoded() const {

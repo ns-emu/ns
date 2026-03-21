@@ -35,12 +35,3 @@
 [submodule "oaknut"]
 	path = externals/oaknut
 	url = https://github.com/ns-emu/oaknut.git
-# [submodule "Vulkan-Utility-Libraries"]
-# 	path = externals/Vulkan-Utility-Libraries
-# 	url = https://github.com/KhronosGroup/Vulkan-Utility-Libraries.git
-# [submodule "VulkanMemoryAllocator"]
-# 	path = externals/VulkanMemoryAllocator
-# 	url = https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator.git
-# [submodule "Vulkan-Headers"]
-# 	path = externals/Vulkan-Headers
-# 	url = https://github.com/KhronosGroup/Vulkan-Headers.git
