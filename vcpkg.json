@@ -1,8 +1,8 @@
 {
   "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
   "name": "yuzu",
-  "builtin-baseline": "4b77da7fed37817f124936239197833469f1b9a8",
   "version": "1.0",
+  "builtin-baseline": "4b77da7fed37817f124936239197833469f1b9a8",
   "dependencies": [
     "boost-algorithm",
     "boost-asio",
@@ -22,29 +22,31 @@
     "boost-test",
     "boost-timer",
     "boost-variant",
+    "cpp-httplib",
+    "cpp-jwt",
+    "cubeb",
+    "enet",
+    "ffmpeg",
     "fmt",
+    "libusb",
     "lz4",
     "nlohmann-json",
-    "zlib",
-    "zstd",
-    "enet",
-    "cubeb",
-    "libusb",
     "opus",
-    "cpp-httplib",
-    "ffmpeg",
-    "cpp-jwt",
     "simpleini",
-    "vulkan-utility-libraries",
-    "vulkan-memory-allocator",
     "vulkan-headers",
-    "qt"
+    "vulkan-memory-allocator",
+    "vulkan-utility-libraries",
+    "zlib",
+    "zstd"
   ],
   "features": {
-    "yuzu-tests": {
-      "description": "Compile tests",
+    "android": {
+      "description": "Enable Android dependencies",
       "dependencies": [
-        "catch2"
+        {
+          "name": "oboe",
+          "platform": "android"
+        }
       ]
     },
     "web-service": {
@@ -56,13 +58,10 @@
         }
       ]
     },
-    "android": {
-      "description": "Enable Android dependencies",
+    "yuzu-tests": {
+      "description": "Compile tests",
       "dependencies": [
-        {
-          "name": "oboe",
-          "platform": "android"
-        }
+        "catch2"
       ]
     }
   },

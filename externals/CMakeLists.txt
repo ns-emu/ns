@@ -57,10 +57,8 @@ if (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "12" AND CMAKE_CXX_COMPILER
     target_compile_options(microprofile INTERFACE "-Wno-array-bounds")
 endif()
 
-# libusb
-if (ENABLE_LIBUSB AND NOT TARGET libusb::usb)
-    add_subdirectory(libusb)
-endif()
+# libusb is now provided by vcpkg
+# No local compilation needed
 
 # SDL2
 if (YUZU_USE_EXTERNAL_SDL2)
@@ -86,26 +84,11 @@ if (YUZU_USE_EXTERNAL_SDL2)
     add_subdirectory(SDL)
 endif()
 
-# ENet
-if (NOT TARGET enet::enet)
-    add_subdirectory(enet)
-    target_include_directories(enet INTERFACE ./enet/include)
-    add_library(enet::enet ALIAS enet)
-endif()
+# ENet is now provided by vcpkg
+# No local compilation needed
 
-# Cubeb
-if (ENABLE_CUBEB AND NOT TARGET cubeb::cubeb)
-    set(BUILD_TESTS OFF)
-    set(BUILD_TOOLS OFF)
-    add_subdirectory(cubeb)
-    add_library(cubeb::cubeb ALIAS cubeb)
-    if (NOT MSVC)
-        if (TARGET speex)
-            target_compile_options(speex PRIVATE -Wno-sign-compare)
-        endif()
-        target_compile_options(cubeb PRIVATE -Wno-implicit-const-int-float-conversion)
-    endif()
-endif()
+# Cubeb is now provided by vcpkg
+# No local compilation needed
 
 # DiscordRPC
 if (USE_DISCORD_PRESENCE AND NOT TARGET DiscordRPC::discord-rpc)
@@ -118,55 +101,25 @@ endif()
 # Sirit
 add_subdirectory(sirit)
 
-# httplib
-if (ENABLE_WEB_SERVICE OR USE_DISCORD_PRESENCE AND NOT TARGET httplib::httplib)
-    set(HTTPLIB_REQUIRE_OPENSSL ON)
-    add_subdirectory(cpp-httplib)
-endif()
+# httplib is now provided by vcpkg
+# No local compilation needed
 
-# cpp-jwt
-if (ENABLE_WEB_SERVICE AND NOT TARGET cpp-jwt::cpp-jwt)
-    set(CPP_JWT_BUILD_EXAMPLES OFF)
-    set(CPP_JWT_BUILD_TESTS OFF)
-    set(CPP_JWT_USE_VENDORED_NLOHMANN_JSON OFF)
-    add_subdirectory(cpp-jwt)
-endif()
+# cpp-jwt is now provided by vcpkg
+# No local compilation needed
 
-# Opus
-if (NOT TARGET Opus::opus)
-    set(OPUS_BUILD_TESTING OFF)
-    set(OPUS_BUILD_PROGRAMS OFF)
-    set(OPUS_INSTALL_PKG_CONFIG_MODULE OFF)
-    set(OPUS_INSTALL_CMAKE_CONFIG_MODULE OFF)
-    add_subdirectory(opus)
-endif()
+# Opus is now provided by vcpkg
+# No local compilation needed
 
-# FFMpeg
-if (YUZU_USE_BUNDLED_FFMPEG)
-    add_subdirectory(ffmpeg)
-    set(FFmpeg_PATH "${FFmpeg_PATH}" PARENT_SCOPE)
-    set(FFmpeg_LDFLAGS "${FFmpeg_LDFLAGS}" PARENT_SCOPE)
-    set(FFmpeg_LIBRARIES "${FFmpeg_LIBRARIES}" PARENT_SCOPE)
-    set(FFmpeg_INCLUDE_DIR "${FFmpeg_INCLUDE_DIR}" PARENT_SCOPE)
-endif()
+# FFmpeg is now provided by vcpkg
+# No local compilation needed
 
-# Vulkan-Headers
-if (YUZU_USE_EXTERNAL_VULKAN_HEADERS)
-    add_subdirectory(Vulkan-Headers)
-endif()
-
-# Vulkan-Utility-Libraries
-if (YUZU_USE_EXTERNAL_VULKAN_UTILITY_LIBRARIES)
-    add_subdirectory(Vulkan-Utility-Libraries)
-endif()
+# Vulkan libraries (Headers, Utility Libraries, VMA) are now provided by vcpkg
+# No local compilation needed
 
 # TZDB (Time Zone Database)
 add_subdirectory(nx_tzdb)
 
-# VMA
-if (NOT TARGET GPUOpen::VulkanMemoryAllocator)
-    add_subdirectory(VulkanMemoryAllocator)
-endif()
+# VMA (Vulkan Memory Allocator) is now provided by vcpkg
 
 if (NOT TARGET LLVM::Demangle)
     add_library(demangle demangle/ItaniumDemangle.cpp)
@@ -310,10 +263,8 @@ if (YUZU_CRASH_DUMPS AND NOT TARGET libbreakpad_client)
     endif()
 endif()
 
-# SimpleIni
-if (NOT TARGET SimpleIni::SimpleIni)
-    add_subdirectory(simpleini)
-endif()
+# SimpleIni is now provided by vcpkg
+# No local compilation needed
 
 # sse2neon
 if (ARCHITECTURE_arm64 AND NOT TARGET sse2neon)

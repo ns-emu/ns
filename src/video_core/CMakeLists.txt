@@ -318,9 +318,7 @@ add_library(video_core STATIC
 target_link_libraries(video_core PUBLIC common core)
 target_link_libraries(video_core PUBLIC glad shader_recompiler stb bc_decoder)
 
-if (YUZU_USE_BUNDLED_FFMPEG AND NOT (WIN32 OR ANDROID))
-    add_dependencies(video_core ffmpeg-build)
-endif()
+# FFmpeg is provided by vcpkg, no need for ffmpeg-build dependency
 
 target_include_directories(video_core PRIVATE ${FFmpeg_INCLUDE_DIR})
 target_link_libraries(video_core PRIVATE ${FFmpeg_LIBRARIES})

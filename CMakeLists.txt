@@ -27,16 +27,17 @@ option(ENABLE_QT "Enable the Qt frontend" ON)
 option(ENABLE_QT6 "Allow usage of Qt6 to be attempted" OFF)
 set(QT6_LOCATION "" CACHE PATH "Additional Location to search for Qt6 libraries like C:/Qt/6.3.1/msvc2019_64/")
 
+# On macOS we only support the Qt frontend via Qt6.
+if(APPLE AND ENABLE_QT)
+    set(ENABLE_QT6 ON CACHE BOOL "Allow usage of Qt6 to be attempted" FORCE)
+endif()
+
 option(ENABLE_QT_TRANSLATION "Enable translations for the Qt frontend" OFF)
 CMAKE_DEPENDENT_OPTION(YUZU_USE_BUNDLED_QT "Download bundled Qt binaries" "${MSVC}" "ENABLE_QT" OFF)
 
 option(ENABLE_WEB_SERVICE "Enable web services (telemetry, etc.)" ON)
 
 option(YUZU_USE_BUNDLED_FFMPEG "Download/Build bundled FFmpeg" "${WIN32}")
-
-option(YUZU_USE_EXTERNAL_VULKAN_HEADERS "Use Vulkan-Headers from externals" ON)
-
-option(YUZU_USE_EXTERNAL_VULKAN_UTILITY_LIBRARIES "Use Vulkan-Utility-Libraries from externals" ON)
 
 option(YUZU_USE_QT_MULTIMEDIA "Use QtMultimedia for Camera" OFF)
 
@@ -293,41 +294,40 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin)
 
 # Enforce the search mode of non-required packages for better and shorter failure messages
 find_package(Boost REQUIRED context)
-find_package(enet 1.3 MODULE)
-find_package(fmt 9 REQUIRED)
-find_package(LLVM 17.0.2 MODULE COMPONENTS Demangle)
-find_package(lz4 REQUIRED)
-find_package(nlohmann_json 3.8 REQUIRED)
-find_package(Opus 1.3 MODULE)
+find_package(Boost REQUIRED COMPONENTS config)
+find_package(Boost REQUIRED COMPONENTS mpl)
+find_package(unofficial-enet CONFIG REQUIRED)
+if(NOT TARGET enet::enet AND TARGET unofficial::enet::enet)
+    add_library(enet::enet ALIAS unofficial::enet::enet)
+endif()
+find_package(fmt CONFIG REQUIRED)
+find_package(LLVM MODULE COMPONENTS Demangle)
+find_package(lz4 CONFIG REQUIRED)
+find_package(nlohmann_json CONFIG REQUIRED)
+find_package(Opus CONFIG REQUIRED)
 find_package(RenderDoc MODULE)
-find_package(SimpleIni MODULE)
+
+# simpleini is header-only in vcpkg; it does not ship a CMake config package.
+find_path(SIMPLEINI_INCLUDE_DIRS NAMES "ConvertUTF.c" PATH_SUFFIXES "simpleini")
+if(NOT SIMPLEINI_INCLUDE_DIRS)
+    message(FATAL_ERROR "SimpleIni (simpleini) not found: ConvertUTF.c missing")
+endif()
+if(NOT TARGET SimpleIni::SimpleIni)
+    add_library(SimpleIni::SimpleIni INTERFACE IMPORTED)
+    set_target_properties(SimpleIni::SimpleIni PROPERTIES
+        INTERFACE_INCLUDE_DIRECTORIES "${SIMPLEINI_INCLUDE_DIRS}"
+    )
+endif()
+
 find_package(stb MODULE)
-find_package(VulkanMemoryAllocator CONFIG)
-find_package(ZLIB 1.2 REQUIRED)
-find_package(zstd 1.5 REQUIRED)
-
-if (NOT YUZU_USE_EXTERNAL_VULKAN_HEADERS)
-    find_package(VulkanHeaders 1.3.274 REQUIRED)
-endif()
-
-if (NOT YUZU_USE_EXTERNAL_VULKAN_UTILITY_LIBRARIES)
-    find_package(VulkanUtilityLibraries REQUIRED)
-endif()
+find_package(VulkanMemoryAllocator CONFIG REQUIRED)
+find_package(VulkanHeaders CONFIG REQUIRED)
+find_package(VulkanUtilityLibraries CONFIG REQUIRED)
+find_package(ZLIB REQUIRED)
+find_package(zstd CONFIG REQUIRED)
 
 if (ENABLE_LIBUSB)
-    find_package(libusb 1.0.24 MODULE)
-endif()
-
-if (ARCHITECTURE_x86 OR ARCHITECTURE_x86_64)
-    find_package(xbyak 7 CONFIG)
-endif()
-
-if (ARCHITECTURE_arm64)
-    find_package(oaknut 2.0.1 CONFIG)
-endif()
-
-if (ARCHITECTURE_x86_64 OR ARCHITECTURE_arm64)
-    find_package(dynarmic 6.4.0 CONFIG)
+    find_package(libusb REQUIRED)
 endif()
 
 if (ENABLE_CUBEB)
@@ -339,12 +339,12 @@ if (USE_DISCORD_PRESENCE)
 endif()
 
 if (ENABLE_WEB_SERVICE)
-    find_package(cpp-jwt 1.4 CONFIG)
-    find_package(httplib 0.12 MODULE COMPONENTS OpenSSL)
+    find_package(cpp-jwt CONFIG REQUIRED)
+    find_package(httplib CONFIG REQUIRED)
 endif()
 
 if (YUZU_TESTS)
-    find_package(Catch2 3.0.1 REQUIRED)
+    find_package(Catch2 CONFIG REQUIRED)
 endif()
 
 # boost:asio has functions that require AcceptEx et al
@@ -391,11 +391,18 @@ if(ENABLE_QT)
     set(QT_VERSION 5.15)
     # These are used to specify minimum versions
     set(QT5_VERSION 5.15)
-    set(QT6_VERSION 6.3.1)
 
     set_yuzu_qt_components()
     if (ENABLE_QT6)
-        find_package(Qt6 ${QT6_VERSION} COMPONENTS ${YUZU_QT_COMPONENTS})
+        # Common Homebrew locations (optional hint)
+        if(APPLE AND NOT Qt6_LOCATION)
+            if(EXISTS "/opt/homebrew/opt/qt")
+                list(APPEND CMAKE_PREFIX_PATH "/opt/homebrew/opt/qt")
+            elseif(EXISTS "/usr/local/opt/qt")
+                list(APPEND CMAKE_PREFIX_PATH "/usr/local/opt/qt")
+            endif()
+        endif()
+        find_package(Qt6 COMPONENTS ${YUZU_QT_COMPONENTS})
     endif()
     if (Qt6_FOUND)
         message(STATUS "yuzu/CMakeLists.txt: Qt6Widgets_VERSION ${Qt6Widgets_VERSION}, setting QT_VERSION")
@@ -404,6 +411,9 @@ if(ENABLE_QT)
         # Qt6 sets cxx_std_17 and we need to undo that
         set_target_properties(Qt6::Platform PROPERTIES INTERFACE_COMPILE_FEATURES "")
     else()
+        if(APPLE)
+            message(FATAL_ERROR "Qt frontend on macOS requires Qt6. Install Qt6 (e.g. Homebrew 'qt') and/or set Qt6_LOCATION or CMAKE_PREFIX_PATH so CMake can find Qt6Config.cmake.")
+        endif()
         message(STATUS "yuzu/CMakeLists.txt: Qt6 not found/not selected, trying for Qt5")
         # When Qt6 partially found, need this set to use Qt5 when not specifying version
         set(QT_DEFAULT_MAJOR_VERSION 5)
@@ -565,10 +575,8 @@ if (UNIX AND NOT APPLE AND NOT ANDROID)
     find_package(PkgConfig REQUIRED)
     pkg_check_modules(LIBVA libva)
 endif()
-if (NOT YUZU_USE_BUNDLED_FFMPEG)
-    # Use system installed FFmpeg
-    find_package(FFmpeg 4.3 REQUIRED QUIET COMPONENTS ${FFmpeg_COMPONENTS})
-endif()
+# FFmpeg is provided by vcpkg
+find_package(FFmpeg REQUIRED QUIET COMPONENTS ${FFmpeg_COMPONENTS})
 
 if (WIN32 AND YUZU_CRASH_DUMPS)
     set(BREAKPAD_VER "breakpad-c89f9dd")
