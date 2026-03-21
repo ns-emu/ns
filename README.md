@@ -14,3 +14,25 @@ The yuzu Emulator also falls under the exemptions stated in Section 1201(f) of t
 ## macOS
 /Applications/CLion.app/Contents/bin/cmake/mac/aarch64/bin/cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_MAKE_PROGRAM=/Applications/CLion.app/Contents/bin/ninja/mac/aarch64/ninja -DYUZU_USE_BUNDLED_VCPKG:BOOL=ON -DCMAKE_OSX_ARCHITECTURES=arm64 -DVCPKG_TARGET_TRIPLET=arm64-osx -DYUZU_USE_BUNDLED_QT:BOOL=OFF -DENABLE_QT6:BOOL=ON -DYUZU_USE_BUNDLED_FFMPEG:BOOL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DENABLE_QT_TRANSLATION=ON -G Ninja -S ~/ns -B ~/ns/cmake-build-debug
 
+# 1. 设置路径
+LLVM_PATH="/opt/homebrew/opt/llvm@18/bin"
+
+# 2. 配置 (显式加入 -Wno-deprecated-declarations 以减少 Qt 6.9 的警告干扰)
+cmake -G Ninja \
+  -S ~/ns -B ~/ns/build \
+  -DCMAKE_C_COMPILER="${LLVM_PATH}/clang" \
+  -DCMAKE_CXX_COMPILER="${LLVM_PATH}/clang++" \
+  -DCMAKE_AR="${LLVM_PATH}/llvm-ar" \
+  -DCMAKE_RANLIB="${LLVM_PATH}/llvm-ranlib" \
+  -DCMAKE_BUILD_TYPE=Debug \
+  -DCMAKE_CXX_FLAGS="-Wno-elaborated-enum-base -Wno-deprecated-declarations" \
+  -DYUZU_USE_BUNDLED_VCPKG=ON \
+  -DCMAKE_OSX_ARCHITECTURES=arm64 \
+  -DVCPKG_TARGET_TRIPLET=arm64-osx \
+  -DYUZU_USE_BUNDLED_QT=OFF \
+  -DENABLE_QT6=ON \
+  -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
+  -DCMAKE_EXE_LINKER_FLAGS="-Wl,-framework,CoreMedia -Wl,-framework,VideoToolbox -Wl,-framework,AudioToolbox -Wl,-framework,CoreVideo -Wl,-framework,CoreFoundation -Wl,-framework,AVFoundation"
+
+# 3. 编译
+ninja -C ~/ns/build

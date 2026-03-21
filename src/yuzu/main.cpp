@@ -65,6 +65,7 @@ static FileSys::VirtualFile VfsDirectoryCreateFileWrapper(const FileSys::Virtual
 }
 
 #include <fmt/ostream.h>
+#include <fmt/ranges.h>
 #include <glad/glad.h>
 
 #define QT_NO_OPENGL
@@ -5240,8 +5241,7 @@ static void SetHighDPIAttributes() {
         Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);
 #endif
 
-    QApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
-    QApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
+
 }
 
 int main(int argc, char* argv[]) {
