@@ -5,6 +5,12 @@
 [Bb]uild*/
 doc-build/
 
+# vcpkg (generated artifacts)
+externals/vcpkg/buildtrees/
+externals/vcpkg/packages/
+externals/vcpkg/downloads/
+externals/vcpkg/installed/
+
 # Generated source files
 src/common/scm_rev.cpp
 dist/english_plurals/generated_en.ts
@@ -36,3 +42,4 @@ CMakeSettings.json
 # Windows global filetypes
 Thumbs.db
 
+/vcpkg_installed/
