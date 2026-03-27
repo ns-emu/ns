@@ -32,7 +32,7 @@ if(APPLE AND ENABLE_QT)
     set(ENABLE_QT6 ON CACHE BOOL "Allow usage of Qt6 to be attempted" FORCE)
 endif()
 
-option(ENABLE_QT_TRANSLATION "Enable translations for the Qt frontend" OFF)
+option(ENABLE_QT_TRANSLATION "Enable translations for the Qt frontend" ON)
 CMAKE_DEPENDENT_OPTION(YUZU_USE_BUNDLED_QT "Download bundled Qt binaries" "${MSVC}" "ENABLE_QT" OFF)
 
 option(ENABLE_WEB_SERVICE "Enable web services (telemetry, etc.)" ON)

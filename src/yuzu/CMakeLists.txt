@@ -357,7 +357,7 @@ if (APPLE)
 
     if (NOT USE_SYSTEM_MOLTENVK)
         set(MOLTENVK_PLATFORM "macOS")
-        set(MOLTENVK_VERSION "v1.2.7")
+        set(MOLTENVK_VERSION "v1.4.0")
         download_moltenvk_external(${MOLTENVK_PLATFORM} ${MOLTENVK_VERSION})
     endif()
     find_library(MOLTENVK_LIBRARY MoltenVK REQUIRED)
@@ -365,7 +365,10 @@ if (APPLE)
     set_source_files_properties(${MOLTENVK_LIBRARY} PROPERTIES MACOSX_PACKAGE_LOCATION Frameworks
                                     XCODE_FILE_ATTRIBUTES "CodeSignOnCopy")
     target_sources(yuzu PRIVATE ${MOLTENVK_LIBRARY})
-
+    target_link_libraries(yuzu PRIVATE
+            "-framework VideoToolbox"
+            "-framework CoreMedia"
+    )
 elseif(WIN32)
     # compile as a win32 gui application instead of a console application
     if (QT_VERSION VERSION_GREATER_EQUAL 6)
