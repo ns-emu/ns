@@ -3,7 +3,7 @@
 
 cmake_minimum_required(VERSION 3.22)
 
-project(yuzu)
+project(ns)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMakeModules")
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/externals/cmake-modules")
@@ -57,7 +57,7 @@ CMAKE_DEPENDENT_OPTION(YUZU_ROOM "Compile LDN room server" ON "NOT ANDROID" OFF)
 
 CMAKE_DEPENDENT_OPTION(YUZU_CRASH_DUMPS "Compile crash dump (Minidump) support" OFF "WIN32 OR LINUX" OFF)
 
-option(YUZU_USE_BUNDLED_VCPKG "Use vcpkg for yuzu dependencies" "${MSVC}")
+option(YUZU_USE_BUNDLED_VCPKG "Use vcpkg for yuzu dependencies" ON)
 
 option(YUZU_CHECK_SUBMODULES "Check if submodules are present" ON)
 
@@ -148,6 +148,10 @@ if (YUZU_USE_BUNDLED_VCPKG)
     if (ANDROID)
         list(APPEND VCPKG_MANIFEST_FEATURES "android")
     endif()
+
+    if (APPLE)
+        set(VCPKG_TARGET_TRIPLET "arm64-osx")
+    endif ()
 
     include(${CMAKE_SOURCE_DIR}/externals/vcpkg/scripts/buildsystems/vcpkg.cmake)
 elseif(NOT "$ENV{VCPKG_TOOLCHAIN_FILE}" STREQUAL "")
@@ -293,9 +297,9 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin)
 # =======================================================================
 
 # Enforce the search mode of non-required packages for better and shorter failure messages
-find_package(Boost REQUIRED context)
-find_package(Boost REQUIRED COMPONENTS config)
-find_package(Boost REQUIRED COMPONENTS mpl)
+find_package(Boost REQUIRED CONFIG COMPONENTS context)
+find_package(Boost REQUIRED CONFIG COMPONENTS config)
+find_package(Boost REQUIRED CONFIG COMPONENTS mpl)
 find_package(unofficial-enet CONFIG REQUIRED)
 if(NOT TARGET enet::enet AND TARGET unofficial::enet::enet)
     add_library(enet::enet ALIAS unofficial::enet::enet)
@@ -325,6 +329,9 @@ find_package(VulkanHeaders CONFIG REQUIRED)
 find_package(VulkanUtilityLibraries CONFIG REQUIRED)
 find_package(ZLIB REQUIRED)
 find_package(zstd CONFIG REQUIRED)
+if(NOT TARGET zstd::zstd AND TARGET zstd::libzstd)
+    add_library(zstd::zstd ALIAS zstd::libzstd)
+endif()
 
 if (ENABLE_LIBUSB)
     find_package(libusb REQUIRED)
@@ -387,152 +394,178 @@ function(set_yuzu_qt_components)
 endfunction(set_yuzu_qt_components)
 
 # Qt5 requires that we find components, so it doesn't fit our pretty little find package function
+#if(ENABLE_QT)
+#    set(QT_VERSION 5.15)
+#    # These are used to specify minimum versions
+#    set(QT5_VERSION 5.15)
+#
+#    set_yuzu_qt_components()
+#    if (ENABLE_QT6)
+#        # Common Homebrew locations (optional hint)
+#        if(APPLE AND NOT Qt6_LOCATION)
+#            if(EXISTS "/opt/homebrew/opt/qt")
+#                list(APPEND CMAKE_PREFIX_PATH "/opt/homebrew/opt/qt")
+#            elseif(EXISTS "/usr/local/opt/qt")
+#                list(APPEND CMAKE_PREFIX_PATH "/usr/local/opt/qt")
+#            endif()
+#        endif()
+#        find_package(Qt6 COMPONENTS ${YUZU_QT_COMPONENTS})
+#    endif()
+#    if (Qt6_FOUND)
+#        message(STATUS "yuzu/CMakeLists.txt: Qt6Widgets_VERSION ${Qt6Widgets_VERSION}, setting QT_VERSION")
+#        set(QT_VERSION ${Qt6Widgets_VERSION})
+#        set(QT_MAJOR_VERSION 6)
+#        # Qt6 sets cxx_std_17 and we need to undo that
+#        set_target_properties(Qt6::Platform PROPERTIES INTERFACE_COMPILE_FEATURES "")
+#    else()
+#        if(APPLE)
+#            message(FATAL_ERROR "Qt frontend on macOS requires Qt6. Install Qt6 (e.g. Homebrew 'qt') and/or set Qt6_LOCATION or CMAKE_PREFIX_PATH so CMake can find Qt6Config.cmake.")
+#        endif()
+#        message(STATUS "yuzu/CMakeLists.txt: Qt6 not found/not selected, trying for Qt5")
+#        # When Qt6 partially found, need this set to use Qt5 when not specifying version
+#        set(QT_DEFAULT_MAJOR_VERSION 5)
+#        set(QT_MAJOR_VERSION 5)
+#
+#        set(YUZU_USE_QT_MULTIMEDIA ON)
+#        # Check for system Qt on Linux, fallback to bundled Qt
+#        if (UNIX AND NOT APPLE)
+#            if (NOT YUZU_USE_BUNDLED_QT)
+#                find_package(Qt5 ${QT5_VERSION} COMPONENTS Widgets DBus Multimedia)
+#            endif()
+#            if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux" AND (NOT Qt5_FOUND OR YUZU_USE_BUNDLED_QT))
+#                # Check for dependencies, then enable bundled Qt download
+#
+#                # Check that the system GLIBCXX version is compatible
+#                find_program(OBJDUMP objdump)
+#                if (NOT OBJDUMP)
+#                    message(FATAL_ERROR "Required program `objdump` not found.")
+#                endif()
+#                find_library(LIBSTDCXX libstdc++.so.6)
+#                execute_process(
+#                    COMMAND
+#                        ${OBJDUMP} -T ${LIBSTDCXX}
+#                    COMMAND
+#                        grep GLIBCXX_3.4.28
+#                    COMMAND
+#                        sed "s/[0-9a-f]*.*  //"
+#                    COMMAND
+#                        sed "s/ .*//"
+#                    COMMAND
+#                        sort -u
+#                    OUTPUT_VARIABLE
+#                        GLIBCXX_MET
+#                )
+#                if (NOT GLIBCXX_MET)
+#                    message(FATAL_ERROR "Qt too old or not found, and bundled Qt package is not \
+#                        compatible with this system. Either install Qt ${QT_VERSION}, or provide the path \
+#                        to Qt by setting the variable Qt5_ROOT.")
+#                endif()
+#
+#                # Check for headers
+#                find_package(PkgConfig REQUIRED)
+#                pkg_check_modules(QT_DEP_GLU QUIET glu>=9.0.0)
+#                if (NOT QT_DEP_GLU_FOUND)
+#                    message(FATAL_ERROR "Qt bundled package dependency `glu` not found. \
+#                        Perhaps `libglu1-mesa-dev` needs to be installed?")
+#                endif()
+#                pkg_check_modules(QT_DEP_MESA QUIET dri>=20.0.8)
+#                if (NOT QT_DEP_MESA_FOUND)
+#                    message(FATAL_ERROR "Qt bundled package dependency `dri` not found. \
+#                        Perhaps `mesa-common-dev` needs to be installed?")
+#                endif()
+#
+#                # Check for X libraries
+#                set(BUNDLED_QT_REQUIREMENTS
+#                    libxcb-icccm.so.4
+#                    libxcb-image.so.0
+#                    libxcb-keysyms.so.1
+#                    libxcb-randr.so.0
+#                    libxcb-render-util.so.0
+#                    libxcb-render.so.0
+#                    libxcb-shape.so.0
+#                    libxcb-shm.so.0
+#                    libxcb-sync.so.1
+#                    libxcb-xfixes.so.0
+#                    libxcb-xinerama.so.0
+#                    libxcb-xkb.so.1
+#                    libxcb.so.1
+#                    libxkbcommon-x11.so.0
+#                    libxkbcommon.so.0
+#                )
+#                set(UNRESOLVED_QT_DEPS "")
+#                foreach (REQUIREMENT ${BUNDLED_QT_REQUIREMENTS})
+#                    find_library(BUNDLED_QT_${REQUIREMENT} ${REQUIREMENT})
+#                    if (NOT BUNDLED_QT_${REQUIREMENT})
+#                        set(UNRESOLVED_QT_DEPS ${UNRESOLVED_QT_DEPS} ${REQUIREMENT})
+#                    endif()
+#                    unset(BUNDLED_QT_${REQUIREMENT})
+#                endforeach()
+#                unset(BUNDLED_QT_REQUIREMENTS)
+#
+#                if (NOT "${UNRESOLVED_QT_DEPS}" STREQUAL "")
+#                    message(FATAL_ERROR "Bundled Qt package missing required dependencies: ${UNRESOLVED_QT_DEPS}")
+#                endif()
+#
+#                set(YUZU_USE_BUNDLED_QT ON CACHE BOOL "Download bundled Qt" FORCE)
+#            endif()
+#            if (YUZU_USE_BUNDLED_QT)
+#                # Binary package currently does not support Qt webengine, so make sure it's disabled
+#                set(YUZU_USE_QT_WEB_ENGINE OFF CACHE BOOL "Use Qt Webengine" FORCE)
+#            endif()
+#        endif()
+#
+#        set(YUZU_QT_NO_CMAKE_SYSTEM_PATH)
+#
+#        if(YUZU_USE_BUNDLED_QT)
+#            if ((MSVC_VERSION GREATER_EQUAL 1920 AND MSVC_VERSION LESS 1940) AND ARCHITECTURE_x86_64)
+#                set(QT_BUILD qt-5.15.2-msvc2019_64)
+#            elseif ((${CMAKE_SYSTEM_NAME} STREQUAL "Linux") AND NOT MINGW AND ARCHITECTURE_x86_64)
+#                set(QT_BUILD qt5_5_15_2)
+#            else()
+#                message(FATAL_ERROR "No bundled Qt binaries for your toolchain. Disable YUZU_USE_BUNDLED_QT and provide your own.")
+#            endif()
+#
+#            if (DEFINED QT_BUILD)
+#                download_bundled_external("qt/" ${QT_BUILD} QT_PREFIX)
+#            endif()
+#
+#            set(QT_PREFIX_HINT HINTS "${QT_PREFIX}")
+#
+#            set(YUZU_QT_NO_CMAKE_SYSTEM_PATH "NO_CMAKE_SYSTEM_PATH")
+#            # Binary package for Qt5 has Qt Multimedia
+#            set(YUZU_USE_QT_MULTIMEDIA ON CACHE BOOL "Use Qt Multimedia" FORCE)
+#        endif()
+#
+#        set_yuzu_qt_components()
+#        find_package(Qt5 ${QT5_VERSION} COMPONENTS ${YUZU_QT_COMPONENTS} ${QT_PREFIX_HINT} ${YUZU_QT_NO_CMAKE_SYSTEM_PATH})
+#    endif()
+#
+#endif()
 if(ENABLE_QT)
-    set(QT_VERSION 5.15)
-    # These are used to specify minimum versions
-    set(QT5_VERSION 5.15)
+    # Require Qt6 only
+    set(QT_MAJOR_VERSION 6)
 
     set_yuzu_qt_components()
-    if (ENABLE_QT6)
-        # Common Homebrew locations (optional hint)
-        if(APPLE AND NOT Qt6_LOCATION)
-            if(EXISTS "/opt/homebrew/opt/qt")
-                list(APPEND CMAKE_PREFIX_PATH "/opt/homebrew/opt/qt")
-            elseif(EXISTS "/usr/local/opt/qt")
-                list(APPEND CMAKE_PREFIX_PATH "/usr/local/opt/qt")
-            endif()
+
+    # macOS: add Homebrew Qt path hints
+    if(APPLE AND NOT Qt6_LOCATION)
+        if(EXISTS "/opt/homebrew/opt/qt")
+            list(APPEND CMAKE_PREFIX_PATH "/opt/homebrew/opt/qt")
+        elseif(EXISTS "/usr/local/opt/qt")
+            list(APPEND CMAKE_PREFIX_PATH "/usr/local/opt/qt")
         endif()
-        find_package(Qt6 COMPONENTS ${YUZU_QT_COMPONENTS})
-    endif()
-    if (Qt6_FOUND)
-        message(STATUS "yuzu/CMakeLists.txt: Qt6Widgets_VERSION ${Qt6Widgets_VERSION}, setting QT_VERSION")
-        set(QT_VERSION ${Qt6Widgets_VERSION})
-        set(QT_MAJOR_VERSION 6)
-        # Qt6 sets cxx_std_17 and we need to undo that
-        set_target_properties(Qt6::Platform PROPERTIES INTERFACE_COMPILE_FEATURES "")
-    else()
-        if(APPLE)
-            message(FATAL_ERROR "Qt frontend on macOS requires Qt6. Install Qt6 (e.g. Homebrew 'qt') and/or set Qt6_LOCATION or CMAKE_PREFIX_PATH so CMake can find Qt6Config.cmake.")
-        endif()
-        message(STATUS "yuzu/CMakeLists.txt: Qt6 not found/not selected, trying for Qt5")
-        # When Qt6 partially found, need this set to use Qt5 when not specifying version
-        set(QT_DEFAULT_MAJOR_VERSION 5)
-        set(QT_MAJOR_VERSION 5)
-
-        set(YUZU_USE_QT_MULTIMEDIA ON)
-        # Check for system Qt on Linux, fallback to bundled Qt
-        if (UNIX AND NOT APPLE)
-            if (NOT YUZU_USE_BUNDLED_QT)
-                find_package(Qt5 ${QT5_VERSION} COMPONENTS Widgets DBus Multimedia)
-            endif()
-            if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux" AND (NOT Qt5_FOUND OR YUZU_USE_BUNDLED_QT))
-                # Check for dependencies, then enable bundled Qt download
-
-                # Check that the system GLIBCXX version is compatible
-                find_program(OBJDUMP objdump)
-                if (NOT OBJDUMP)
-                    message(FATAL_ERROR "Required program `objdump` not found.")
-                endif()
-                find_library(LIBSTDCXX libstdc++.so.6)
-                execute_process(
-                    COMMAND
-                        ${OBJDUMP} -T ${LIBSTDCXX}
-                    COMMAND
-                        grep GLIBCXX_3.4.28
-                    COMMAND
-                        sed "s/[0-9a-f]*.*  //"
-                    COMMAND
-                        sed "s/ .*//"
-                    COMMAND
-                        sort -u
-                    OUTPUT_VARIABLE
-                        GLIBCXX_MET
-                )
-                if (NOT GLIBCXX_MET)
-                    message(FATAL_ERROR "Qt too old or not found, and bundled Qt package is not \
-                        compatible with this system. Either install Qt ${QT_VERSION}, or provide the path \
-                        to Qt by setting the variable Qt5_ROOT.")
-                endif()
-
-                # Check for headers
-                find_package(PkgConfig REQUIRED)
-                pkg_check_modules(QT_DEP_GLU QUIET glu>=9.0.0)
-                if (NOT QT_DEP_GLU_FOUND)
-                    message(FATAL_ERROR "Qt bundled package dependency `glu` not found. \
-                        Perhaps `libglu1-mesa-dev` needs to be installed?")
-                endif()
-                pkg_check_modules(QT_DEP_MESA QUIET dri>=20.0.8)
-                if (NOT QT_DEP_MESA_FOUND)
-                    message(FATAL_ERROR "Qt bundled package dependency `dri` not found. \
-                        Perhaps `mesa-common-dev` needs to be installed?")
-                endif()
-
-                # Check for X libraries
-                set(BUNDLED_QT_REQUIREMENTS
-                    libxcb-icccm.so.4
-                    libxcb-image.so.0
-                    libxcb-keysyms.so.1
-                    libxcb-randr.so.0
-                    libxcb-render-util.so.0
-                    libxcb-render.so.0
-                    libxcb-shape.so.0
-                    libxcb-shm.so.0
-                    libxcb-sync.so.1
-                    libxcb-xfixes.so.0
-                    libxcb-xinerama.so.0
-                    libxcb-xkb.so.1
-                    libxcb.so.1
-                    libxkbcommon-x11.so.0
-                    libxkbcommon.so.0
-                )
-                set(UNRESOLVED_QT_DEPS "")
-                foreach (REQUIREMENT ${BUNDLED_QT_REQUIREMENTS})
-                    find_library(BUNDLED_QT_${REQUIREMENT} ${REQUIREMENT})
-                    if (NOT BUNDLED_QT_${REQUIREMENT})
-                        set(UNRESOLVED_QT_DEPS ${UNRESOLVED_QT_DEPS} ${REQUIREMENT})
-                    endif()
-                    unset(BUNDLED_QT_${REQUIREMENT})
-                endforeach()
-                unset(BUNDLED_QT_REQUIREMENTS)
-
-                if (NOT "${UNRESOLVED_QT_DEPS}" STREQUAL "")
-                    message(FATAL_ERROR "Bundled Qt package missing required dependencies: ${UNRESOLVED_QT_DEPS}")
-                endif()
-
-                set(YUZU_USE_BUNDLED_QT ON CACHE BOOL "Download bundled Qt" FORCE)
-            endif()
-            if (YUZU_USE_BUNDLED_QT)
-                # Binary package currently does not support Qt webengine, so make sure it's disabled
-                set(YUZU_USE_QT_WEB_ENGINE OFF CACHE BOOL "Use Qt Webengine" FORCE)
-            endif()
-        endif()
-
-        set(YUZU_QT_NO_CMAKE_SYSTEM_PATH)
-
-        if(YUZU_USE_BUNDLED_QT)
-            if ((MSVC_VERSION GREATER_EQUAL 1920 AND MSVC_VERSION LESS 1940) AND ARCHITECTURE_x86_64)
-                set(QT_BUILD qt-5.15.2-msvc2019_64)
-            elseif ((${CMAKE_SYSTEM_NAME} STREQUAL "Linux") AND NOT MINGW AND ARCHITECTURE_x86_64)
-                set(QT_BUILD qt5_5_15_2)
-            else()
-                message(FATAL_ERROR "No bundled Qt binaries for your toolchain. Disable YUZU_USE_BUNDLED_QT and provide your own.")
-            endif()
-
-            if (DEFINED QT_BUILD)
-                download_bundled_external("qt/" ${QT_BUILD} QT_PREFIX)
-            endif()
-
-            set(QT_PREFIX_HINT HINTS "${QT_PREFIX}")
-
-            set(YUZU_QT_NO_CMAKE_SYSTEM_PATH "NO_CMAKE_SYSTEM_PATH")
-            # Binary package for Qt5 has Qt Multimedia
-            set(YUZU_USE_QT_MULTIMEDIA ON CACHE BOOL "Use Qt Multimedia" FORCE)
-        endif()
-
-        set_yuzu_qt_components()
-        find_package(Qt5 ${QT5_VERSION} COMPONENTS ${YUZU_QT_COMPONENTS} ${QT_PREFIX_HINT} ${YUZU_QT_NO_CMAKE_SYSTEM_PATH})
     endif()
 
+    find_package(Qt6 COMPONENTS ${YUZU_QT_COMPONENTS})
+
+    if(NOT Qt6_FOUND)
+        message(FATAL_ERROR "Qt6 is required. Install Qt6 (e.g. Homebrew 'qt') or set Qt6_LOCATION / CMAKE_PREFIX_PATH.")
+    endif()
+
+    message(STATUS "Using Qt6 version: ${Qt6Widgets_VERSION}")
+
+    # Qt6 sets cxx_std_17; undo that if needed
+    set_target_properties(Qt6::Platform PROPERTIES INTERFACE_COMPILE_FEATURES "")
 endif()
 
 # find SDL2 exports a bunch of variables that are needed, so its easier to do this outside of the yuzu_find_package

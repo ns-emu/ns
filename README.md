@@ -19,20 +19,18 @@ LLVM_PATH="/opt/homebrew/opt/llvm@18/bin"
 
 # 2. 配置 (显式加入 -Wno-deprecated-declarations 以减少 Qt 6.9 的警告干扰)
 cmake -G Ninja \
-  -S ~/ns -B ~/ns/build \
-  -DCMAKE_C_COMPILER="${LLVM_PATH}/clang" \
-  -DCMAKE_CXX_COMPILER="${LLVM_PATH}/clang++" \
-  -DCMAKE_AR="${LLVM_PATH}/llvm-ar" \
-  -DCMAKE_RANLIB="${LLVM_PATH}/llvm-ranlib" \
-  -DCMAKE_BUILD_TYPE=Debug \
-  -DCMAKE_CXX_FLAGS="-Wno-elaborated-enum-base -Wno-deprecated-declarations" \
+  -S . -B build \
+  -DCMAKE_C_COMPILER="/usr/bin/clang" \
+  -DCMAKE_CXX_COMPILER="/usr/bin/clang++" \
+  -DCMAKE_BUILD_TYPE=Release \
   -DYUZU_USE_BUNDLED_VCPKG=ON \
-  -DCMAKE_OSX_ARCHITECTURES=arm64 \
   -DVCPKG_TARGET_TRIPLET=arm64-osx \
-  -DYUZU_USE_BUNDLED_QT=OFF \
   -DENABLE_QT6=ON \
+  -DYUZU_USE_BUNDLED_QT=OFF \
+  -DCMAKE_OSX_DEPLOYMENT_TARGET="26.0" \
   -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
-  -DCMAKE_EXE_LINKER_FLAGS="-Wl,-framework,CoreMedia -Wl,-framework,VideoToolbox -Wl,-framework,AudioToolbox -Wl,-framework,CoreVideo -Wl,-framework,CoreFoundation -Wl,-framework,AVFoundation"
+  -DCMAKE_CXX_FLAGS="-Wno-elaborated-enum-base -Wno-deprecated-declarations" \
+  -DCMAKE_EXE_LINKER_FLAGS="-Wl,-framework,VideoToolbox -Wl,-framework,CoreFoundation -Wl,-framework,CoreMedia -Wl,-framework,AudioToolbox -Wl,-framework,AVFoundation -Wl,-framework,AppKit -Wl,-framework,QuartzCore"
 
 # 3. 编译
 ninja -C ~/ns/build

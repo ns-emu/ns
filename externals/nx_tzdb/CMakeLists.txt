@@ -9,6 +9,12 @@ find_program(GIT git)
 find_program(GNU_MAKE make)
 find_program(DATE_PROG date)
 
+message(STATUS "--- NX_TZDB 调试信息 ---")
+message(STATUS "GIT: ${GIT}")
+message(STATUS "GNU_MAKE: ${GNU_MAKE}")
+message(STATUS "DATE_PROG: ${DATE_PROG}")
+message(STATUS "CMAKE_SYSTEM_NAME: ${CMAKE_SYSTEM_NAME}")
+
 set(CAN_BUILD_NX_TZDB true)
 
 if (NOT GIT)

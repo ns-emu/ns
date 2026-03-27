@@ -244,7 +244,26 @@ void Lobby::RefreshLobby() {
 }
 
 void Lobby::OnRefreshLobby() {
-    AnnounceMultiplayerRoom::RoomList new_room_list = room_list_watcher.result();
+    // AnnounceMultiplayerRoom::RoomList new_room_list = room_list_watcher.result();
+    // 1. 增加安全检查：如果任务被取消或尚未准备好，直接退出，防止空引用
+    if (!room_list_watcher.isFinished()) {
+        return;
+    }
+
+    AnnounceMultiplayerRoom::RoomList new_room_list;
+
+    // 2. 异常捕获：这是防止 Abort 崩溃的关键
+    try {
+        new_room_list = room_list_watcher.result();
+    } catch (const std::exception& e) {
+        // 如果抓到异常，记录日志并恢复 UI 状态，而不是让程序自杀
+        // LOG_ERROR(Frontend, "Lobby refresh failed: {}", e.what());
+
+        ui->refresh_list->setEnabled(true);
+        ui->refresh_list->setText(tr("Refresh Failed"));
+        return;
+    }
+
     for (auto room : new_room_list) {
         // find the icon for the game if this person owns that game.
         QPixmap smdh_icon;
